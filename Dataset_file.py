@@ -83,6 +83,8 @@ class Dataset(BaseDataset):
     def __init__(self, sub_dir, args, rng=RNG, crop_size=456):
         
         self.is_test = sub_dir == args.test_data
+        if self.is_test:
+            print("sub_dir test")
         self.rng = rng
         self.crop_size = crop_size
        
@@ -167,15 +169,21 @@ class Dataset(BaseDataset):
                 ),
                 interpolation=cv2.INTER_NEAREST,
             )
-       
+        else:
+            crop_size = self.crop_size
+            x0 = np.random.randint(500 - crop_size)
+            y0 = np.random.randint(500 - crop_size)
+            image = image[x0 : x0 + crop_size, y0 : y0 + crop_size]
+            
+            
         image = self.preprocessing_fn(image).astype("float32")
         image = np.transpose(image, (2, 0, 1))
-         
+    
         ##print("agl shape before return",agl.shape)
         if self.is_test:
             return image, str(rgb_path)
         else:
-            return image, agl
+            return image, agl, str(rgb_path)
 
     def __len__(self):
         return len(self.paths_list)

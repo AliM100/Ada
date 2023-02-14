@@ -7,7 +7,7 @@ from pickle import FRAME
 import shutil
 import csv
 from tkinter import LAST
-import pandas as pd
+#import pandas as pd
 
 def create_from_csv():
     filename="train_Vaih.csv"
@@ -207,6 +207,65 @@ def split_train_test_val():
             new_trrgb=shutil.move(ima,val)
             csvwriter.writerow([new_trheight,new_trrgb])
         
+
+        
+        
+def split_train_test_val_geodata():
+    geo="geo_data"
+    train="data/train"
+    test="data/test"
+    val="data/valid"
+    os.mkdir(train)
+    os.mkdir(test)
+    os.mkdir(val)
+  
+    for h in random.sample(os.listdir(geo),int(len(os.listdir(geo))*.7)):
+            print(h)
+            id1=h.split("_")[0]
+            print("id1: ",id1)
+            id2=h.split("_")[1]
+            print("id2: ",id2)
+            typpe=h.split("_")[-1]
+            ttype=typpe.split(".")[0]
+            print("type: ",ttype)
+            if ttype=="AGL":
+                for im in Path(geo).glob(f"{id1}_{id2}_RGB.tif"): ima=im
+                print("ima ",ima)
+                new_trheight=shutil.move(os.path.join(geo,h),train)
+                new_trrgb=shutil.move(ima,train)
+            
+         
+    for h in random.sample(os.listdir(geo),int(len(os.listdir(geo))*.5)):
+            print(h)
+            id1=h.split("_")[0]
+            print("id1: ",id1)
+            id2=h.split("_")[1]
+            print("id2: ",id2)
+            typpe=h.split("_")[-1]
+            ttype=typpe.split(".")[0]
+            print("type: ",ttype)
+            if ttype=="AGL":
+                for im in Path(geo).glob(f"{id1}_{id2}_RGB.tif"): ima=im
+                print("ima ",ima)
+                new_trheight=shutil.move(os.path.join(geo,h),test)
+                new_trrgb=shutil.move(ima,test)
+        
+
+    for h in os.listdir(geo):
+            print(h)
+            id1=h.split("_")[0]
+            print("id1: ",id1)
+            id2=h.split("_")[1]
+            print("id2: ",id2)
+            typpe=h.split("_")[-1]
+            ttype=typpe.split(".")[0]
+            print("type: ",ttype)
+            if ttype=="AGL":
+                for im in Path(geo).glob(f"{id1}_{id2}_RGB.tif"): ima=im
+                print("ima ",ima)
+                new_trheight=shutil.move(os.path.join(geo,h),val)
+                new_trrgb=shutil.move(ima,val)
+        
 def move_all():
     # top="Vaihingen/top"
     # dsm="Vaihingen/dsm"
@@ -214,13 +273,15 @@ def move_all():
     #     shutil.move(os.path.join(top,i),"Vaihingen")
     # for i in os.listdir(dsm):
     #     shutil.move(os.path.join(dsm,i),"Vaihingen")
-    train="data/Vaihingen/train"
-    height="data/Vaihingen/height"
-    rgbs="data/Vaihingen/rgbs"
-    for i in Path(train).glob("DSM_09cm_matching_*_*.tif"):
+    train="train"
+    height="delete"
+    for i in Path(train).glob("*_*_VFLOW.json"):
         shutil.move(i,height)
-    for j in  Path(train).glob("TOP_Mosaic_09cm_*_*.tif"):
-         shutil.move(j,rgbs)
+    #rgbs="data/Vaihingen/rgbs"
+    # for i in Path(train).glob("DSM_09cm_matching_*_*.tif"):
+    #     shutil.move(i,height)
+    # for j in  Path(train).glob("TOP_Mosaic_09cm_*_*.tif"):
+    #      shutil.move(j,rgbs)
                 
 def copy_json():
     test="data/test"
@@ -261,8 +322,9 @@ if __name__ == '__main__':
     
     #create_from_csv()
     #split_train_test()
+    split_train_test_val_geodata()
     #move_all()
-    split_train_test_val()
+    #split_train_test_val()
     #create_any()
     #create_Vaihingen()
     # copy_json()

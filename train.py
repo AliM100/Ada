@@ -26,6 +26,9 @@ import loaddata
 PROJECT = "MDE-AdaBins"
 logging = True
 from Dataset_file import Dataset
+import torch
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
 
 def is_rank_zero(args):
     return args.rank == 0
@@ -188,7 +191,7 @@ def train(model, args, epochs=10, experiment_name="DeepLab", lr=0.0001, root="."
     if args.resume != '' and scheduler is not None:
         scheduler.step(args.epoch + 1)
     ################################################################################################
-
+    
     # max_iter = len(train_loader) * epochs
     for epoch in range(args.epoch, epochs):
         ################################# Train loop ##########################################################
@@ -196,7 +199,7 @@ def train(model, args, epochs=10, experiment_name="DeepLab", lr=0.0001, root="."
         for i, batch in tqdm(enumerate(train_loader), desc=f"Epoch: {epoch + 1}/{epochs}. Loop: Train",
                              total=len(train_loader)) if is_rank_zero(
                 args) else enumerate(train_loader):
-
+        
             optimizer.zero_grad()
 
             ## img = batch['image'].to(device)
@@ -222,6 +225,7 @@ def train(model, args, epochs=10, experiment_name="DeepLab", lr=0.0001, root="."
                 l_chamfer = torch.Tensor([0]).to(img.device)
 
             loss = l_dense + args.w_chamfer * l_chamfer
+            writer.add_scalar("Loss/train", loss, epoch)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 0.1)  # optional
             optimizer.step()
@@ -411,6 +415,7 @@ if __name__ == '__main__':
     parser.add_argument('--nan_placeholder',default=65535)
     parser.add_argument('--unit',default='')
     parser.add_argument('--random_crop',default='')
+    parser.add_argument('--rgb_suffix',default='')
     if sys.argv.__len__() == 2:
         arg_filename_with_prefix = '@' + sys.argv[1]
         args = parser.parse_args([arg_filename_with_prefix])
@@ -454,7 +459,10 @@ if __name__ == '__main__':
     if args.distributed:
         args.world_size = ngpus_per_node * args.world_size
         mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+       
     else:
         if ngpus_per_node == 1:
             args.gpu = 0
         main_worker(args.gpu, ngpus_per_node, args)
+    writer.flush()
+    writer.close()

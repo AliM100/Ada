@@ -46,19 +46,17 @@ def load_image(
     
     image = image.ReadAsArray()
     # convert AGL units and fill nan placeholder with nan
-    if "DSM" in image_path.name:
+    if "DSM" or "AGL" in image_path.name:
         ##image = image.astype(dtype_out)
        
         image1=Image.open(str(image_path))
-    
-        
         image = torch.from_numpy(np.array(image1))
         nchannel = len(image1.mode)
         image = image.view(image1.size[1], image1.size[0],nchannel)
        
         ##image=np.asarray(Image.open(image_path), dtype=np.float32)
         ##np.putmask(image, image == args.nan_placeholder, np.nan)
-        
+        ##image[image == args.nan_placeholder] = np.nan
         units_per_meter = units_per_meter_conversion_factors[args.unit]
         image = np.array((image / units_per_meter),dtype=dtype_out)
         image=np.rollaxis(image,2,0)
@@ -81,7 +79,6 @@ basemodel_name ="timm-regnety_032"
 class Dataset(BaseDataset):
     is_test=False
     def __init__(self, sub_dir, args, rng=RNG, crop_size=456):
-        
         self.is_test = sub_dir == args.test_data
         if self.is_test:
             print("sub_dir test")
@@ -91,13 +88,16 @@ class Dataset(BaseDataset):
         # create all paths with respect to RGB path ordering to maintain alignment of samples
         dataset_dir = Path(sub_dir) 
         
-        rgb_paths = list(dataset_dir.glob(f"TOP_Mosaic_09cm_*_*.tif"))
+        ##rgb_paths = list(dataset_dir.glob(f"TOP_Mosaic_09cm_*_*.tif"))
+        rgb_paths = list(dataset_dir.glob(f"*_*_RGB.tif"))
 
         if rgb_paths == []:
             rgb_paths = list(
-                dataset_dir.glob(f"TOP_Mosaic_09cm_*_*.tif")
+                ##dataset_dir.glob(f"TOP_Mosaic_09cm_*_*.tif")
+                dataset_dir.glob(f"*_*_RGB.tif")
             )  # original file names
-        agl_paths = list(dataset_dir.glob(f"DSM_09cm_matching_*_*.tif"))
+        ##agl_paths = list(dataset_dir.glob(f"DSM_09cm_matching_*_*.tif"))
+        agl_paths = list(dataset_dir.glob(f"*_*_AGL.tif"))
        
 
         if self.is_test:
@@ -132,14 +132,14 @@ class Dataset(BaseDataset):
             image = load_image(rgb_path, self.args)
             agl = load_image(agl_path, self.args)
             
-
+            
             # v6_random_crop
             if self.args.random_crop:
                 crop_size = self.crop_size
-                #**x0 = np.random.randint(2048 - crop_size)
-                #**y0 = np.random.randint(2048 - crop_size)
-                x0 = np.random.randint(500 - crop_size)
-                y0 = np.random.randint(500 - crop_size)
+                x0 = np.random.randint(1024 - crop_size)
+                y0 = np.random.randint(1024 - crop_size)
+                # x0 = np.random.randint(500 - crop_size)
+                # y0 = np.random.randint(500 - crop_size)
                 # print(image.shape, agl.shape, mag.shape, flush=True)
                 image = image[x0 : x0 + crop_size, y0 : y0 + crop_size]
                 agl = agl[x0 : x0 + crop_size, y0 : y0 + crop_size]
@@ -157,6 +157,7 @@ class Dataset(BaseDataset):
             #         vflow_data["scale"],
             #         agl=agl,
             #     )
+           
             agl=np.rollaxis(agl,2,0)
             agl = agl.astype("float32")
           
@@ -169,21 +170,26 @@ class Dataset(BaseDataset):
                 ),
                 interpolation=cv2.INTER_NEAREST,
             )
-        else:
-            crop_size = self.crop_size
-            x0 = np.random.randint(500 - crop_size)
-            y0 = np.random.randint(500 - crop_size)
-            image = image[x0 : x0 + crop_size, y0 : y0 + crop_size]
+         ##makes conflict of image shape while training##   
+        # else:
+        #     crop_size = self.crop_size
+        #     # x0 = np.random.randint(500 - crop_size)
+        #     # y0 = np.random.randint(500 - crop_size)
+        #     x0 = np.random.randint(1024 - crop_size)
+        #     y0 = np.random.randint(1024 - crop_size)
+        #     image = image[x0 : x0 + crop_size, y0 : y0 + crop_size]
             
             
         image = self.preprocessing_fn(image).astype("float32")
         image = np.transpose(image, (2, 0, 1))
-    
+
+        ##print("image shape before return",image.shape)
         ##print("agl shape before return",agl.shape)
         if self.is_test:
             return image, str(rgb_path)
         else:
-            return image, agl, str(rgb_path)
+            ##return image, agl, str(rgb_path)
+            return image, agl
 
     def __len__(self):
         return len(self.paths_list)
